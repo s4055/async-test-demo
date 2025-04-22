@@ -5,3 +5,7 @@ spring:
 logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+external-url:
+  a: https://api.example.com/1
+  b: https://api.example.com/2
