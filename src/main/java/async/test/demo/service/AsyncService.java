@@ -17,17 +17,17 @@ public class AsyncService {
 
   @Async
   public CompletableFuture<?> externalUrlA() {
+    log.info("=============== externalUrlA ===============");
     RestTemplate restTemplate = new RestTemplate();
     String result = restTemplate.getForObject(externalUrlProps.getA(), String.class);
-    log.info("a = {}", result);
     return CompletableFuture.completedFuture(result);
   }
 
   @Async
   public CompletableFuture<?> externalUrlB() {
+    log.info("=============== externalUrlB ===============");
     RestTemplate restTemplate = new RestTemplate();
     String result = restTemplate.getForObject(externalUrlProps.getB(), String.class);
-    log.info("b = {}", result);
     return CompletableFuture.completedFuture(result);
   }
 }
