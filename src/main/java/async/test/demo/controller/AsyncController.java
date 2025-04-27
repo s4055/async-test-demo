@@ -1,13 +1,13 @@
 package async.test.demo.controller;
 
 import async.test.demo.service.AsyncService;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -42,37 +42,27 @@ public class AsyncController {
 
   /**
    * 비동기 연습 2 <br>
+   * => 클라이언트에게 업로드 성공을 주는 경우 <br>
    * 1. 여러 개의 이미지 업로드 <br>
-   * 2. 각 이미지에 대해서 썸네일 생성 <br>
+   * 2. 각 이미지 병렬 업로드 <br>
    * 3. 위 과정을 병렬 처리 후 병합 <br>
    */
-  @PostMapping("/upload")
-  public CompletableFuture<ResponseEntity<?>> upload(
+  @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public ResponseEntity<?> upload(
       @RequestPart(value = "file", required = false) List<MultipartFile> multipartFileList) {
-    List<CompletableFuture<Map<String, Object>>> futures = new ArrayList<>();
 
-    for (MultipartFile file : multipartFileList) {
-      CompletableFuture<Map<String, Object>> future =
-          asyncService
-              .processImage(file)
-              .handle(
-                  (result, ex) -> {
-                    if (ex != null) {
-                      Map<String, Object> errorResponse = new HashMap<>();
-                      errorResponse.put("error", "Failed to process image: " + ex.getMessage());
-                      return errorResponse;
-                    }
-                    return result;
-                  });
-      futures.add(future);
-    }
+    List<CompletableFuture<Boolean>> futures =
+        multipartFileList.stream().map(asyncService::uploadFile).toList();
 
-    return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-        .thenApply(
-            v -> {
-              Map<String, Object> response = new HashMap<>();
-              response.put("status", "All images processed successfully");
-              return ResponseEntity.ok(response);
-            });
+    CompletableFuture<Void> allFutures =
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+
+    allFutures.join(); // 모든 파일이 업로드될 때까지 대기
+
+    boolean allSuccess = futures.stream().allMatch(CompletableFuture::join); // 실패 케이스가 있는지 확인
+
+    String response = "file upload " + (allSuccess ? "success" : "fail");
+
+    return ResponseEntity.ok(response);
   }
 }

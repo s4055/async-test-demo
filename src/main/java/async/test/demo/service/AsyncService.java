@@ -1,8 +1,8 @@
 package async.test.demo.service;
 
 import async.test.demo.prop.ExternalUrlProps;
-import java.util.HashMap;
-import java.util.Map;
+import java.io.File;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -35,32 +35,16 @@ public class AsyncService {
   }
 
   @Async
-  public CompletableFuture<Map<String, Object>> processImage(MultipartFile file) {
-    return CompletableFuture.supplyAsync(
-            () -> {
-              Map<String, Object> result = new HashMap<>();
-              String thumbnail = createThumbnail(file);
-              result.put("thumbnail", thumbnail);
-              return result;
-            })
-        .handle(
-            (result, ex) -> {
-              if (ex != null) {
-                Map<String, Object> errorResponse = new HashMap<>();
-                errorResponse.put("error", "Failed to process image: " + ex.getMessage());
-                return errorResponse;
-              }
-              return result;
-            })
-        .exceptionally(
-            ex -> {
-              Map<String, Object> errorResponse = new HashMap<>();
-              errorResponse.put("error", "Unexpected error: " + ex.getMessage());
-              return errorResponse;
-            });
-  }
-
-  private String createThumbnail(MultipartFile file) {
-    return "thumbnail_" + file.getName();
+  public CompletableFuture<Boolean> uploadFile(MultipartFile file) {
+    try {
+      String filePath = UUID.randomUUID() + "_" + file.getOriginalFilename();
+      file.transferTo(new File(filePath));
+      log.info("file save success = {}", filePath);
+      return CompletableFuture.completedFuture(true);
+    } catch (Exception e) {
+      log.info("{}", e.getMessage());
+      log.info("file save fail = {}", file.getOriginalFilename());
+      return CompletableFuture.completedFuture(false);
+    }
   }
 }
